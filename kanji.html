@@ -729,6 +729,17 @@
   }
   .kq-opt:hover { border-color: var(--accent2); }
   .kq-opt input { accent-color: var(--accent); margin: 0; }
+  .rp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+  .rp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fdfbf8; cursor: pointer; font-size: 0.92rem; }
+  .rp-chip input { accent-color: var(--accent); margin: 0; }
+  .rp-chip.on { border-color: var(--accent); background: var(--accent-soft); }
+  .rp-label { margin: 10px 0 0; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+  .rp-progress { color: var(--muted); font-size: 0.85rem; margin-bottom: 6px; }
+  .rp-q { font-size: 1.05rem; }
+  .rp-glyph { font-size: 1.5rem; }
+  .rp-read { font-size: 1.3rem; }
+  .rp-opt { cursor: pointer; font: inherit; }
+  .rp-opt:disabled { cursor: default; }
   .kq-opt.selected { border-color: var(--accent); background: var(--accent-soft); }
   .kq-opt.right { border-color: #1f6f3f; background: #e5f4ea; }
   .kq-opt.wrong { border-color: var(--accent); background: #fbe0dc; }
@@ -2870,6 +2881,201 @@ const KANJI_UPCOMING = [
   { icon: '🔜', title: 'Lesson 14' }
 ];
 
+/* ---------- Reading practice: random multiple choice on kun'yomi / on'yomi ---------- */
+const RP_QUESTION_COUNTS = [10, 20, 30];
+let rpSet = null;   // { qs: [...], i: 0, score: 0, answered: false }
+function rpSettings() {
+  const K = progress.kanji;
+  if (!K.rp) K.rp = {};
+  const s = K.rp;
+  if (!Array.isArray(s.lessons)) s.lessons = [];
+  if (!s.scope) s.scope = 'both';       // single | combo | both
+  if (!s.reading) s.reading = 'both';   // kun | on | both
+  if (!s.count) s.count = 10;
+  if (!s.meaning) s.meaning = 'mixed';  // off | mixed | only
+  return s;
+}
+function rpHira(s) { return String(s).replace(/[ァ-ヶ]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) - 0x60); }); }
+function rpLessonKanji() { // day index -> kanji list, from the kanji pages of each lesson
+  const out = [];
+  KANJI_DAYS.forEach(function(d, di) {
+    if (d.id === 'dp') return;
+    const list = d.pages.filter(function(p) { return p.chip && KANJI_ITEMS[p.chip]; }).map(function(p) { return p.chip; });
+    if (list.length) out.push({ di: di, name: d.short, kanji: list });
+  });
+  return out;
+}
+function rpReadings(c) {
+  const k = KANJI_ITEMS[c];
+  const on = [rpHira(k.on[0])], kun = [k.kun[0]];
+  (String(k.on[2] || '').match(/[ァ-ヶー]+/g) || []).forEach(function(x) { on.push(rpHira(x)); });
+  (String(k.kun[2] || '').match(/[ぁ-ゖー]+/g) || []).forEach(function(x) { kun.push(x); });
+  return { on: on.filter(Boolean), kun: kun.filter(function(x) { return /^[ぁ-ゖー]+$/.test(x); }) };
+}
+function rpShuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function rpPickOptions(correct, pool, n, avoid) {
+  const bad = {}; bad[correct] = true; (avoid || []).forEach(function(x) { bad[x] = true; });
+  const uniq = rpShuffle(Array.from(new Set(pool))).filter(function(x) { return !bad[x]; });
+  return rpShuffle([correct].concat(uniq.slice(0, n - 1)));
+}
+function rpBuildPool(set) {
+  const kanji = [];
+  rpLessonKanji().forEach(function(l) { if (set.lessons.indexOf(l.di) >= 0) l.kanji.forEach(function(c) { if (kanji.indexOf(c) < 0) kanji.push(c); }); });
+  const allKanji = Object.keys(KANJI_ITEMS);
+  const poolKun = [], poolOn = [], poolWords = [];
+  allKanji.forEach(function(c) { const r = rpReadings(c); if (r.kun[0]) poolKun.push(r.kun[0]); poolOn.push(KANJI_ITEMS[c].on[0]); });
+  allKanji.forEach(function(c) { (KANJI_ITEMS[c].words || []).forEach(function(w) { if (w.result && w.result[2]) poolWords.push(w.result[2]); }); });
+  const poolMeaning = allKanji.map(function(c) { return KANJI_ITEMS[c].meaning; });
+  const poolWordMeaning = [];
+  allKanji.forEach(function(c) { (KANJI_ITEMS[c].words || []).forEach(function(w) { if (w.result && w.result[1]) poolWordMeaning.push(w.result[1]); }); });
+  const qs = { single: [], combo: [] };
+  const wantRead = set.meaning !== 'only', wantMean = set.meaning !== 'off';
+  kanji.forEach(function(c) {
+    const k = KANJI_ITEMS[c], r = rpReadings(c);
+    if (wantMean) {
+      qs.single.push({ type: 'meaning', en: true, answer: k.meaning, opts: rpPickOptions(k.meaning, poolMeaning, 4),
+        q: 'What does <span class="k-jp rp-glyph" lang="ja">' + c + '</span> mean?',
+        fb: c + ' = ' + k.meaning + ' (kun\'yomi ' + k.kun[0] + ', on\'yomi ' + k.on[0] + ')' });
+    }
+    if (wantRead && set.reading !== 'on' && r.kun[0]) {
+      qs.single.push({ type: 'kun', answer: r.kun[0], opts: rpPickOptions(r.kun[0], poolKun, 4, r.kun.concat(r.on)),
+        q: 'What is the <strong>kun\'yomi</strong> of <span class="k-jp rp-glyph" lang="ja">' + c + '</span> (' + k.meaning + ')?',
+        fb: c + ' — kun\'yomi ' + k.kun[0] + ' (' + k.kun[1] + '), on\'yomi ' + k.on[0] + ' (' + k.on[1] + ')' });
+    }
+    if (wantRead && set.reading !== 'kun' && r.on[0]) {
+      const katOn = [];
+      r.on.forEach(function(x) { katOn.push(x); katOn.push(x.replace(/[ぁ-ゖ]/g, function(ch) { return String.fromCharCode(ch.charCodeAt(0) + 0x60); })); });
+      qs.single.push({ type: 'on', answer: k.on[0], opts: rpPickOptions(k.on[0], poolOn, 4, katOn.concat(r.kun)),
+        q: 'What is the <strong>on\'yomi</strong> of <span class="k-jp rp-glyph" lang="ja">' + c + '</span> (' + k.meaning + ')?',
+        fb: c + ' — on\'yomi ' + k.on[0] + ' (' + k.on[1] + '), kun\'yomi ' + k.kun[0] + ' (' + k.kun[1] + ')' });
+    }
+  });
+  const seen = {};
+  kanji.forEach(function(c) {
+    (KANJI_ITEMS[c].words || []).forEach(function(w) {
+      if (!w.result || !w.result[2] || !w.parts || seen[w.result[0]]) return;
+      seen[w.result[0]] = true;
+      const word = w.result[0], rd = w.result[2];
+      // which reading type does each part use?
+      const info = w.parts.map(function(p) {
+        if (!p[2] || !KANJI_ITEMS[p[0]]) return { p: p, t: null };
+        const r = rpReadings(p[0]);
+        const t = r.kun.indexOf(p[2]) >= 0 ? 'kun' : (r.on.indexOf(p[2]) >= 0 ? 'on' : null);
+        return { p: p, t: t, r: r };
+      });
+      if (wantMean) {
+        qs.combo.push({ type: 'meaning', en: true, answer: w.result[1], opts: rpPickOptions(w.result[1], poolWordMeaning, 4),
+          q: 'What does <span class="k-jp rp-glyph" lang="ja">' + word + '</span> (' + rd + ') mean?',
+          fb: word + ' (' + rd + ') = ' + w.result[1] });
+      }
+      if (!wantRead) return;
+      if (set.reading !== 'both' && !info.some(function(x) { return x.t === set.reading; })) return;
+      // distractors: the same word with a part swapped to its other reading + readings of other words
+      const near = [];
+      info.forEach(function(x) {
+        if (!x.t) return;
+        const alt = x.t === 'kun' ? x.r.on[0] : x.r.kun[0];
+        if (alt && rd.indexOf(x.p[2]) >= 0) { const v = rd.replace(x.p[2], alt); if (v !== rd) near.push(v); }
+      });
+      const opts = [rd].concat(rpShuffle(Array.from(new Set(near))).slice(0, 2));
+      rpPickOptions(rd, poolWords, 4, near).forEach(function(x) { if (opts.length < 4 && opts.indexOf(x) < 0) opts.push(x); });
+      const parts = info.map(function(x) { return x.p[0] + ' = ' + (x.p[2] || '?') + (x.t ? ' (' + x.t + '\'yomi)' : ''); }).join(' · ');
+      qs.combo.push({ type: 'combo', answer: rd, opts: rpShuffle(opts),
+        q: 'How is <span class="k-jp rp-glyph" lang="ja">' + word + '</span> (' + w.result[1] + ') read?',
+        fb: word + ' = ' + rd + '. ' + parts });
+      if (set.reading === 'both') {
+        info.forEach(function(x) {
+          if (!x.t) return;
+          qs.combo.push({ type: 'which', answer: x.t, opts: rpShuffle(['kun', 'on']), labels: { kun: 'Kun\'yomi (native Japanese)', on: 'On\'yomi (Chinese-derived)' },
+            q: 'In <span class="k-jp rp-glyph" lang="ja">' + word + '</span> (' + rd + '), <span class="k-jp rp-glyph" lang="ja">' + x.p[0] + '</span> is read <span class="k-jp" lang="ja">' + x.p[2] + '</span>. Which reading is that?',
+            fb: x.p[0] + ' → ' + x.p[2] + ' is its ' + x.t + '\'yomi (kun ' + x.r.kun[0] + ', on ' + x.r.on[0] + ')' });
+        });
+      }
+    });
+  });
+  return qs;
+}
+function rpStart() {
+  const s = rpSettings();
+  if (!s.lessons.length) { rpMsg('Pick at least one lesson.'); return; }
+  const pool = rpBuildPool(s);
+  let all = [];
+  if (s.scope !== 'combo') all = all.concat(pool.single);
+  if (s.scope !== 'single') all = all.concat(pool.combo);
+  all = rpShuffle(all);
+  if (!all.length) { rpMsg('No questions for that selection. Try other lessons or settings.'); return; }
+  rpSet = { qs: all.slice(0, s.count), i: 0, score: 0, answered: false, log: [] };
+  rpRender();
+}
+function rpMsg(t) { const m = document.getElementById('rpMsg'); if (m) m.textContent = t; }
+function rpSet_(key, val) { const s = rpSettings(); s[key] = val; saveProgress(progress); rpRender(); }
+function rpToggleLesson(di) {
+  const s = rpSettings(), i = s.lessons.indexOf(di);
+  if (i >= 0) s.lessons.splice(i, 1); else s.lessons.push(di);
+  saveProgress(progress); rpRender();
+}
+function rpAllLessons(on) { const s = rpSettings(); s.lessons = on ? rpLessonKanji().map(function(l) { return l.di; }) : []; saveProgress(progress); rpRender(); }
+function rpRadio(key, val, label, cur) {
+  return '<label class="rp-chip' + (cur === val ? ' on' : '') + '"><input type="radio" name="rp_' + key + '" ' + (cur === val ? 'checked' : '') + ' onchange="rpSet_(\'' + key + '\',' + (typeof val === 'number' ? val : '\'' + val + '\'') + ')">' + label + '</label>';
+}
+function rpSetup() {
+  const s = rpSettings();
+  let h = '<p>Random multiple-choice questions on <strong>kun\'yomi</strong>, <strong>on\'yomi</strong> and <strong>meanings</strong>. Choose the lessons and what you want to practise, then press Start.</p>';
+  h += '<div class="lecture-block"><h4>📚 Lessons</h4><div class="rp-chips">';
+  rpLessonKanji().forEach(function(l) {
+    const on = s.lessons.indexOf(l.di) >= 0;
+    h += '<label class="rp-chip' + (on ? ' on' : '') + '"><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="rpToggleLesson(' + l.di + ')"><span>' + l.name + '</span> <span class="k-jp" lang="ja">' + l.kanji.join(' ') + '</span></label>';
+  });
+  h += '</div><p class="rp-links"><button class="check-btn" onclick="rpAllLessons(true)">All lessons</button> <button class="check-btn" onclick="rpAllLessons(false)">Clear</button></p></div>';
+  h += '<div class="lecture-block"><h4>🎛️ What to practise</h4>';
+  h += '<p class="rp-label">Content</p><div class="rp-chips">' + rpRadio('scope', 'single', 'Single kanji', s.scope) + rpRadio('scope', 'combo', 'Combinations (words)', s.scope) + rpRadio('scope', 'both', 'Both', s.scope) + '</div>';
+  h += '<p class="rp-label">Reading</p><div class="rp-chips">' + rpRadio('reading', 'kun', 'Kun\'yomi', s.reading) + rpRadio('reading', 'on', 'On\'yomi', s.reading) + rpRadio('reading', 'both', 'Both', s.reading) + '</div>';
+  h += '<p class="rp-label">Meanings</p><div class="rp-chips">' + rpRadio('meaning', 'off', 'Readings only', s.meaning) + rpRadio('meaning', 'mixed', 'Readings + meanings', s.meaning) + rpRadio('meaning', 'only', 'Meanings only', s.meaning) + '</div>';
+  h += '<p class="rp-label">Number of questions</p><div class="rp-chips">' + RP_QUESTION_COUNTS.map(function(n) { return rpRadio('count', n, String(n), s.count); }).join('') + '</div></div>';
+  h += '<div class="kq-bar"><button class="check-btn" onclick="rpStart()">▶ Start</button><span id="rpMsg" class="kq-msg" role="status"></span></div>';
+  return h;
+}
+function rpRender() {
+  const el = document.getElementById('rpBody');
+  if (!el) return;
+  if (!rpSet) { el.innerHTML = rpSetup(); return; }
+  const S = rpSet, n = S.qs.length;
+  if (S.i >= n) {
+    const pct = Math.round(S.score / n * 100);
+    el.innerHTML = '<div class="recap-done">🏁 You got <strong>' + S.score + ' / ' + n + ' (' + pct + '%)</strong>. ' + (pct === 100 ? 'Perfect! すごい！' : pct >= 70 ? 'Nice work!' : 'Keep practising — review the lessons and try again.') + '</div>' +
+      (S.log.length ? '<div class="lecture-block"><h4>Review the ones you missed</h4><ul class="goals">' + S.log.map(function(x) { return '<li lang="ja">' + x + '</li>'; }).join('') + '</ul></div>' : '') +
+      '<div class="kq-bar"><button class="check-btn" onclick="rpStart()">New random set</button> <button class="check-btn" onclick="rpSet=null;rpRender()">Change settings</button></div>';
+    return;
+  }
+  const q = S.qs[S.i];
+  let h = '<div class="kq-q"><div class="rp-progress">Question ' + (S.i + 1) + ' of ' + n + ' · ' + S.score + ' correct</div><h5 class="rp-q">' + q.q + '</h5><div class="kq-opts" id="rpOpts">';
+  q.opts.forEach(function(o, oi) {
+    const label = q.labels ? q.labels[o] : o;
+    h += '<button class="kq-opt rp-opt" onclick="rpAnswer(' + oi + ')"><span' + (q.labels || q.en ? '' : ' lang="ja" class="rp-read"') + '>' + label + '</span></button>';
+  });
+  h += '</div><div id="rpFb"></div></div>';
+  el.innerHTML = h;
+}
+function rpAnswer(oi) {
+  const S = rpSet; if (S.answered) return;
+  const q = S.qs[S.i], picked = q.opts[oi], ok = picked === q.answer;
+  S.answered = true;
+  if (ok) S.score++; else S.log.push(q.fb);
+  document.querySelectorAll('#rpOpts .rp-opt').forEach(function(b, i) {
+    b.disabled = true;
+    if (q.opts[i] === q.answer) b.classList.add('right'); else if (i === oi) b.classList.add('wrong');
+  });
+  document.getElementById('rpFb').innerHTML = '<div class="kq-fb ' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Correct. ' : '✗ Not quite. ') + '<span lang="ja">' + q.fb + '</span></div>' +
+    '<div class="kq-bar"><button class="check-btn" onclick="rpNext()">' + (S.i + 1 >= S.qs.length ? 'See result' : 'Next ▶') + '</button></div>';
+}
+function rpNext() { rpSet.i++; rpSet.answered = false; rpRender(); }
+function rpPage() { rpSet = null; return '<div id="rpBody"></div>'; }
+KANJI_DAYS.push({
+  id: 'dp', short: 'Practice', icon: '🎯', title: 'Reading practice — kun & on',
+  checklist: [],
+  pages: [{ icon: '🎯', title: 'Kun\'yomi & on\'yomi quiz', html: rpPage, after: rpRender }]
+});
+
 /* ---------- kanji navigation + rendering ---------- */
 function openKanji(di, pi) {
   kDay = di; kPage = pi;
@@ -2891,7 +3097,9 @@ function renderKanjiSidebar() {
   const el = document.getElementById('kanjiSidebar');
   if (!el) return;
   let h = '';
-  KANJI_DAYS.forEach(function(d, di) {
+  const order = KANJI_DAYS.map(function(d, di) { return di; }).sort(function(a, b) { return (KANJI_DAYS[b].id === 'dp') - (KANJI_DAYS[a].id === 'dp'); });
+  order.forEach(function(di) {
+    const d = KANJI_DAYS[di];
     const open = !!kOpenDays[di];
     h += '<div class="unit"><button class="unit-toggle' + (open ? ' open' : '') + '" onclick="toggleKDay(' + di + ')"><span>' + d.icon + ' ' + d.title + '</span><span class="arrow">▶</span></button>' +
       '<div class="unit-body' + (open ? ' open' : '') + '"><div class="kday-pages">';
