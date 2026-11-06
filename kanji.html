@@ -2803,6 +2803,89 @@ const L13 = {
 };
 const GEN_LESSONS_2 = [L8, L9, L10, L11, L12, L13].map(mkLesson);
 
+/* ---------- Lesson 14: review of lessons 8-13 ---------- */
+const L14_GROUPS = [[8, '大小中'], [9, '上下本'], [10, '左右前'], [11, '後内外'], [12, '男女子'], [13, '父母友']];
+function l14Overview() {
+  let h = `<p>Lesson 14 is a review. No new kanji — we go back over the <strong>18 kanji</strong> from Lessons 8–13 and the main ideas behind their readings.</p><div class="k-goal">⏱ About 30 minutes · then the big quiz</div>`;
+  L14_GROUPS.forEach(function(g) {
+    h += `<h4 class="k-h4">Lesson ${g[0]}</h4><div class="k-cards">` + [...g[1]].map(function(c) {
+      const k = KANJI_ITEMS[c];
+      return gcard(c, k.meaning.split(' / ')[0], k.kun[0] + ' · ' + k.on[0]);
+    }).join('') + `</div>`;
+  });
+  return h + `<p class="k-note">Cover the right-hand side of each card and try to recall the meaning, the kun'yomi (hiragana) and the on'yomi (katakana).</p>`;
+}
+function l14Logic() {
+  return `<p>Five ideas explain almost every reading in Lessons 8–13:</p>
+    <div class="k-event"><span class="k-badge">1</span><div><h5>Opposite pairs</h5><p class="k-jp-line" lang="ja">大↔小 · 上↔下 · 左↔右 · 前↔後 · 内↔外 · 男↔女</p><p>Learn kanji in pairs: if you know one, you can place the other.</p></div></div>
+    <div class="k-event"><span class="k-badge">2</span><div><h5>Okurigana complete the word</h5><p class="k-jp-line" lang="ja">大きい おおきい · 小さい ちいさい · 後ろ うしろ</p><p>The kanji carries the meaning; the hiragana after it finishes the reading.</p></div></div>
+    <div class="k-event"><span class="k-badge">3</span><div><h5>One kanji, several kun'yomi and on'yomi</h5><p class="k-jp-line" lang="ja">小 ちい · こ · お · ショウ &nbsp; 上 うえ · うわ · かみ · ジョウ &nbsp; 大 ダイ / タイ</p><p>The word decides the reading: 小鳥 ことり, 小川 おがわ, 小さい ちいさい.</p></div></div>
+    <div class="k-event"><span class="k-badge">4</span><div><h5>Sound changes: rendaku and counters</h5><p class="k-jp-line" lang="ja">上着 うわぎ · 内側 うちがわ · 友だち ともだち · 一本 いっぽん 二本 にほん 三本 さんぼん</p><p>A voiced sound (g, b, d) often appears in the second part, and the counter 本 changes with the number.</p></div></div>
+    <div class="k-event"><span class="k-badge">5</span><div><h5>My family and your family</h5><p class="k-jp-line" lang="ja">父 ちち · 母 はは ↔ お父さん · お母さん</p><p>Different words for your own relatives and for someone else's.</p></div></div>`;
+}
+function l14Words() {
+  const pairs = [['Big / small', '大きい', 'おおきい', '小さい', 'ちいさい'], ['Up / down', '上', 'うえ', '下', 'した'], ['Left / right', '左', 'ひだり', '右', 'みぎ'], ['Front / behind', '前', 'まえ', '後ろ', 'うしろ'], ['Inside / outside', '内', 'うち', '外', 'そと'], ['Man / woman', '男', 'おとこ', '女', 'おんな'], ['Father / mother', '父', 'ちち', '母', 'はは']];
+  const rows = [['大学 大切', 'だいがく たいせつ', 'University, important'], ['小鳥 小学生', 'ことり しょうがくせい', 'Small bird, elementary pupil'], ['中国 一日中', 'ちゅうごく いちにちじゅう', 'China, all day'], ['上手 下手', 'じょうず へた', 'Good at, not good at'], ['上着 地下', 'うわぎ ちか', 'Jacket, underground'], ['日本 本当', 'にほん ほんとう', 'Japan, really'], ['名前 午前', 'なまえ ごぜん', 'Name, AM'], ['左手 右折', 'ひだりて うせつ', 'Left hand, right turn'], ['午後 後ろ', 'ごご うしろ', 'PM, behind'], ['外国人 内側', 'がいこくじん うちがわ', 'Foreigner, inner side'], ['男の子 女の子', 'おとこのこ おんなのこ', 'Boy, girl'], ['子ども 彼女', 'こども かのじょ', 'Child, she / girlfriend'], ['お父さん お母さん', 'おとうさん おかあさん', 'Father, mother (respectful)'], ['友だち 親友', 'ともだち しんゆう', 'Friend, best friend']];
+  return `<h4 class="k-h4">Opposite pairs</h4><div class="k-table-wrap">${vocabTable(pairs.map(function(p) { return [p[0], J(p[1]) + ' ' + p[2] + ' ↔ ' + J(p[3]) + ' ' + p[4], '']; }).map(function(r) { return [r[0], r[1]]; }), ['Pair', 'Japanese'])}</div>
+    <h4 class="k-h4">Key words</h4><div class="k-table-wrap">${vocabTable(rows.map(function(r) { return [J(r[0]), r[1], r[2]]; }), ['Words', 'Readings', 'Meaning'])}</div>`;
+}
+const L14_CARDS = [
+  ['大学', 'だいがく', 'daigaku', 'University'], ['大切', 'たいせつ', 'taisetsu', 'Important'], ['小鳥', 'ことり', 'kotori', 'Small bird'], ['一日中', 'いちにちじゅう', 'ichinichijuu', 'All day'],
+  ['中国', 'ちゅうごく', 'chuugoku', 'China'], ['上着', 'うわぎ', 'uwagi', 'Jacket'], ['川上', 'かわかみ', 'kawakami', 'Upstream'], ['地下', 'ちか', 'chika', 'Underground'],
+  ['本当', 'ほんとう', 'hontou', 'True / really'], ['三本', 'さんぼん', 'sanbon', 'Three long things'], ['名前', 'なまえ', 'namae', 'Name'], ['午前', 'ごぜん', 'gozen', 'AM'],
+  ['左手', 'ひだりて', 'hidarite', 'Left hand'], ['右折', 'うせつ', 'usetsu', 'Right turn'], ['午後', 'ごご', 'gogo', 'PM'], ['後ろ', 'うしろ', 'ushiro', 'Behind'],
+  ['外国人', 'がいこくじん', 'gaikokujin', 'Foreigner'], ['内側', 'うちがわ', 'uchigawa', 'Inner side'], ['女の子', 'おんなのこ', 'onnanoko', 'Girl'], ['彼女', 'かのじょ', 'kanojo', 'She / girlfriend'],
+  ['男性', 'だんせい', 'dansei', 'Male'], ['お母さん', 'おかあさん', 'okaasan', 'Mother (respectful)'], ['友だち', 'ともだち', 'tomodachi', 'Friend'], ['親友', 'しんゆう', 'shinyuu', 'Best friend']
+].map(function(c) { return { w: c[0], kana: c[1], rom: c[2], en: c[3] }; });
+const L14_SENTENCES = [
+  ['大きい本が上にあります。', 'おおきい ほんが うえに あります。', 'Ookii hon ga ue ni arimasu.', 'There is a big book on top.', ''],
+  ['右の小さい子は友だちです。', 'みぎの ちいさい こは ともだちです。', 'Migi no chiisai ko wa tomodachi desu.', 'The small child on the right is my friend.', ''],
+  ['母は外国人です。', 'ははは がいこくじんです。', 'Haha wa gaikokujin desu.', 'My mother is a foreigner.', ''],
+  ['午後、いえの外で父と話します。', 'ごご、いえの そとで ちちと はなします。', 'Gogo, ie no soto de chichi to hanashimasu.', 'In the afternoon I talk with my father outside the house.', ''],
+  ['男の子は後ろ、女の子は前です。', 'おとこのこは うしろ、おんなのこは まえです。', 'Otokonoko wa ushiro, onnanoko wa mae desu.', 'The boy is at the back, the girl at the front.', ''],
+  ['日本の大学に中国の友だちがいます。', 'にほんの だいがくに ちゅうごくの ともだちが います。', 'Nihon no daigaku ni Chuugoku no tomodachi ga imasu.', 'I have a friend from China at a Japanese university.', '']
+];
+const L14_QUIZ = [
+  jq('<b>L8</b> How is <span class="k-jp">大学</span> read?', kj([['おおがく', 'oogaku'], ['だいがく', 'daigaku'], ['たいがく', 'taigaku']]), 1),
+  jq('<b>L8</b> How is <span class="k-jp">小鳥</span> read?', kj([['ことり', 'kotori'], ['しょうちょう', 'shouchou'], ['ちいとり', 'chiitori']]), 0),
+  jq('<b>L8</b> How is <span class="k-jp">中国</span> read?', kj([['なかくに', 'nakakuni'], ['じゅうごく', 'juugoku'], ['ちゅうごく', 'chuugoku']]), 2),
+  jq('<b>L8</b> Why is <span class="k-jp">一日中</span> read いちにちじゅう?', [['After a time word, 中 means “throughout” and is read ジュウ', ''], ['中 is always read じゅう', ''], ['Rendaku: ちゅう becomes じゅう in every word', '']], 0),
+  jq('<b>L9</b> How is <span class="k-jp">上着</span> read?', kj([['じょうちゃく', 'jouchaku'], ['うわぎ', 'uwagi'], ['うえき', 'ueki']]), 1),
+  jq('<b>L9</b> How is <span class="k-jp">地下</span> read?', kj([['ちか', 'chika'], ['ちした', 'chishita'], ['じげ', 'jige']]), 0),
+  jq('<b>L9</b> How is <span class="k-jp">三本</span> read?', kj([['さんほん', 'sanhon'], ['さんぽん', 'sanpon'], ['さんぼん', 'sanbon']]), 2),
+  jq('<b>L9</b> What does <span class="k-jp">川上</span> mean?', [['Upstream', ''], ['Downstream', ''], ['A river book', '']], 0),
+  jq('<b>L10</b> How is <span class="k-jp">名前</span> read?', kj([['めいぜん', 'meizen'], ['なまえ', 'namae'], ['なぜん', 'nazen']]), 1),
+  jq('<b>L10</b> How is <span class="k-jp">左手</span> read?', kj([['ひだりて', 'hidarite'], ['さしゅ', 'sashu'], ['みぎて', 'migite']]), 0),
+  jq('<b>L10</b> What does <span class="k-jp">午前</span> mean?', [['PM', ''], ['Noon', ''], ['AM', '']], 2),
+  jq('<b>L10</b> What does <span class="k-jp">右折</span> mean?', [['Right turn', ''], ['Left turn', ''], ['Straight on', '']], 0),
+  jq('<b>L11</b> How is <span class="k-jp">外国人</span> read?', kj([['そとくにびと', 'sotokunibito'], ['がいこくじん', 'gaikokujin'], ['がいこくにん', 'gaikokunin']]), 1),
+  jq('<b>L11</b> How is <span class="k-jp">後ろ</span> read?', kj([['うしろ', 'ushiro'], ['あとろ', 'atoro'], ['ごろ', 'goro']]), 0),
+  jq('<b>L11</b> What does <span class="k-jp">午後</span> mean?', [['AM', ''], ['Noon', ''], ['PM', '']], 2),
+  jq('<b>L11</b> Why is <span class="k-jp">内側</span> read うちがわ?', [['Rendaku: かわ becomes がわ', ''], ['側 is always がわ', ''], ['内 is read うちが', '']], 0),
+  jq('<b>L12</b> How is <span class="k-jp">女の子</span> read?', kj([['じょのこ', 'jonoko'], ['めのこ', 'menoko'], ['おんなのこ', 'onnanoko']]), 2),
+  jq('<b>L12</b> How is <span class="k-jp">彼女</span> read?', kj([['かのじょ', 'kanojo'], ['ひおんな', 'hionna'], ['かれじょ', 'karejo']]), 0),
+  jq('<b>L12</b> How is <span class="k-jp">子ども</span> read?', kj([['しども', 'shidomo'], ['こども', 'kodomo'], ['ことも', 'kotomo']]), 1),
+  jq('<b>L12</b> How is <span class="k-jp">男性</span> read?', kj([['だんせい', 'dansei'], ['おとこせい', 'otokosei'], ['なんせい', 'nansei']]), 0),
+  jq('<b>L13</b> How is <span class="k-jp">お母さん</span> read?', kj([['おははさん', 'ohahasan'], ['おぼさん', 'obosan'], ['おかあさん', 'okaasan']]), 2),
+  jq('<b>L13</b> Which word do you use for <i>your own</i> father?', kj([['父 ちち', 'chichi'], ['お父さん おとうさん', 'otousan'], ['父親 ちちおや', 'chichioya']]), 0),
+  jq('<b>L13</b> Why is <span class="k-jp">友だち</span> read ともだち?', [['友 is read ともだ', ''], ['Rendaku: たち becomes だち', ''], ['だち is the on\'yomi', '']], 1),
+  jq('<b>L13</b> What does <span class="k-jp">親友</span> mean?', [['A relative', ''], ['A close friend', ''], ['A parent', '']], 1)
+];
+const LESSON14 = {
+  id: 'd14', short: 'Lesson 14', icon: '🔁', title: 'Lesson 14 — Review of Lessons 8–13',
+  quiz: L14_QUIZ, cards: L14_CARDS,
+  checklist: ['I reviewed all 18 kanji and can recall their meanings.', 'I can explain okurigana, rendaku and counters.', 'I reviewed the opposite pairs and key word tables.', 'I went through the 24 review cards.', 'I solved the big quiz.'],
+  pages: [
+    { icon: '🗂️', title: 'All 18 kanji', html: l14Overview },
+    { icon: '🧭', title: 'Five ideas behind the readings', html: l14Logic },
+    { icon: '📋', title: 'Words to know', html: l14Words },
+    { icon: '🃏', title: 'Review cards', html: d1Cards, after: function() { kfIdx = 0; kfFlipped = false; kfRender(); } },
+    { icon: '📖', title: 'Reading practice', html: function() { return kReading('<p>Mixed sentences with kanji from Lessons 8–13. Read first, then open.</p>', L14_SENTENCES); } },
+    { icon: '🧠', title: 'Big quiz (24 questions)', html: d1Quiz, after: renderQuizBody },
+    { icon: '✅', title: 'Checklist', html: function() { return kcBlock(LESSON14) + '<div class="culture-box"><strong>Well done!</strong> You can now read and explain 36 kanji and many words. Send the next lesson when it is ready.</div>'; } }
+  ]
+};
+
 const KANJI_DAYS = [{
   id: 'd0', short: 'Lesson 0', icon: '🧭', title: 'Lesson 0 — The logic of kanji',
   quiz: L0_QUIZ,
@@ -2876,7 +2959,7 @@ const KANJI_DAYS = [{
     { icon: '✍️', title: 'Writing and daily task', html: l2Writing, after: initPads },
     { icon: '✅', title: 'Checklist', html: l2Checklist }
   ]
-}].concat(GEN_LESSONS, [LESSON7], GEN_LESSONS_2);
+}].concat(GEN_LESSONS, [LESSON7], GEN_LESSONS_2, [LESSON14]);
 const KANJI_UPCOMING = [
   { icon: '🔜', title: 'Lesson 14' }
 ];
